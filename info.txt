@@ -1,0 +1,7 @@
+size:
+small: 200
+medium: 400
+large: 800
+T = 0,20
+R = 0,60
+g = 0,10
