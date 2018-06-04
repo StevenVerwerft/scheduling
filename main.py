@@ -78,7 +78,7 @@ class GUI_starter(Frame):
 
         submitrow = Frame(self)
         submitbtn = Button(submitrow, text='submit', command=self.submit)
-        printbtn = Button(submitrow, text='print', command=self.print)
+        printbtn = Button(submitrow, text='print', command=self.Print)
         submitrow.pack(fill=X, expand=YES)
         submitbtn.pack()
         printbtn.pack()
@@ -106,7 +106,7 @@ class GUI_starter(Frame):
 
         return dic
 
-    def print(self):
+    def Print(self):
 
         dic = self.get_items()
         for key, value in dic.items():
@@ -137,33 +137,67 @@ if sys.argv[1]:
     output_name = sys.argv[1]
 else:
     output_name = 'output.csv'
-for random_order in [True, False]:
 
-    for x_length in [1, 5, 10]:
+RandomOrder = [True, False]
+XLength = [1, 10, 30]
+TabuTenure = [50, 150, 300]
+InstanceDir = ['instance1000', 'instance1200']
 
-        for tabu_length in [10, 50, 100]:
+FactorPool = list(itertools.product(RandomOrder, XLength, TabuTenure, InstanceDir))
+random.shuffle(FactorPool)
+for FactorCombination in FactorPool:
+    random_order = FactorCombination[0]
+    firstX = FactorCombination[1]
+    Tenure = FactorCombination[2]
+    instance_dir = FactorCombination[3]
 
-            for instance_size_dir in ['small_instances', 'medium_instances', 'large_instances']:
+    for instance_path in os.listdir(os.path.abspath(instance_dir)):
+        path = os.path.join(instance_dir, instance_path)
+        solver = Solver(iterations=1000, tabu_tenure=Tenure, first_x=firstX,
+                        goalfunction=goalfunction, verbosity=100, n_time=60, random_order=random_order)
+        solution_path = solver.local_search(path=path)
 
-                for instance_path in os.listdir(os.path.abspath(instance_size_dir)):
+        # create the long format of the experiment
+        goalvals = [solution[0] for solution in solution_path]
+        times = [solution[1] for solution in solution_path]
+        id = [instance_path for solution in solution_path]
+        firstx = [firstX for solution in solution_path]
+        tabu = [Tenure for solution in solution_path]
+        randoms = [str(random_order) for solution in solution_path]
+        sizes = [instance_dir for solution in solution_path]
 
-                    path = os.path.join(instance_size_dir, instance_path)
-                    solver = Solver(iterations=1000, tabu_tenure=tabu_length, first_x=x_length,
-                                    goalfunction=goalfunction, verbosity=100, n_time=60, random_order=random_order)
-                    solution_path = solver.local_search(path=path)
+        dicdf = pd.DataFrame({'id': id, 'goalfunction': goalvals, 'time': times, 'first x': firstx,
+                              'tabu tenure': tabu, 'size': sizes, 'random order': randoms})
+        solution_df = solution_df.append(dicdf)
 
-                    # create the long format of the experiment
-                    goalvals = [solution[0] for solution in solution_path]
-                    times = [solution[1] for solution in solution_path]
-                    id = [instance_path for solution in solution_path]
-                    firstx = [x_length for solution in solution_path]
-                    tabu = [tabu_length for solution in solution_path]
-                    randoms = [str(random_order) for solution in solution_path]
-                    sizes = [instance_size_dir for solution in solution_path]
+if False:
+    for random_order in [True, False]:
 
-                    dicdf = pd.DataFrame({'id': id, 'goalfunction': goalvals, 'time': times, 'first x': firstx,
-                                          'tabu tenure': tabu, 'size': sizes, 'random order': randoms})
-                    solution_df = solution_df.append(dicdf)
+        for x_length in [1, 10, 30]:
+
+            for tabu_length in [50, 150, 300]:
+
+                for instance_size_dir in ['small_instances', 'medium_instances', 'large_instances']:
+
+                    for instance_path in os.listdir(os.path.abspath(instance_size_dir)):
+
+                        path = os.path.join(instance_size_dir, instance_path)
+                        solver = Solver(iterations=1000, tabu_tenure=tabu_length, first_x=x_length,
+                                        goalfunction=goalfunction, verbosity=100, n_time=60, random_order=random_order)
+                        solution_path = solver.local_search(path=path)
+
+                        # create the long format of the experiment
+                        goalvals = [solution[0] for solution in solution_path]
+                        times = [solution[1] for solution in solution_path]
+                        id = [instance_path for solution in solution_path]
+                        firstx = [x_length for solution in solution_path]
+                        tabu = [tabu_length for solution in solution_path]
+                        randoms = [str(random_order) for solution in solution_path]
+                        sizes = [instance_size_dir for solution in solution_path]
+
+                        dicdf = pd.DataFrame({'id': id, 'goalfunction': goalvals, 'time': times, 'first x': firstx,
+                                              'tabu tenure': tabu, 'size': sizes, 'random order': randoms})
+                        solution_df = solution_df.append(dicdf)
 
 solution_df.to_csv(output_name, sep=',', index=False)
 quit()

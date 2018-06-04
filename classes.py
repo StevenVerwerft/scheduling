@@ -20,6 +20,9 @@ if sys.platform == 'darwin':
     from tkinter import *
 # Step 1: read the instance
 
+if sys.platform == 'win32':
+    import matplotlib.pyplot as plt
+    from tkinter import *
 
 class Instance:
 
